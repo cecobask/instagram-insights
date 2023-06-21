@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"os"
 )
 
@@ -13,12 +14,19 @@ type UserData struct {
 }
 
 type FollowData struct {
-	Following []UserData
-	Followers []UserData
+	Following map[string]UserData
+	Followers map[string]UserData
 }
 
 type UserDataJson struct {
 	UserData []UserData `json:"string_list_data"`
+}
+
+func NewFollowData() *FollowData {
+	return &FollowData{
+		Following: make(map[string]UserData),
+		Followers: make(map[string]UserData),
+	}
 }
 
 func (fd *FollowData) ExtractFollowing() error {
@@ -31,7 +39,8 @@ func (fd *FollowData) ExtractFollowing() error {
 		return err
 	}
 	for _, following := range jsonStruct["relationships_following"] {
-		fd.Following = append(fd.Following, following.UserData[0])
+		userData := following.UserData[0]
+		fd.Following[userData.Username] = userData
 	}
 	return nil
 }
@@ -47,7 +56,8 @@ func (fd *FollowData) ExtractFollowers() error {
 		return err
 	}
 	for _, follower := range jsonArray {
-		fd.Followers = append(fd.Followers, follower.UserData[0])
+		userData := follower.UserData[0]
+		fd.Followers[userData.Username] = userData
 	}
 	return nil
 }
@@ -65,17 +75,21 @@ func (fd *FollowData) ExtractAllData() error {
 }
 
 func (fd *FollowData) FindUnfollowers() {
-	fmt.Println("=================================================================================================")
-	for _, following := range fd.Following {
-		var found bool
-		for _, follower := range fd.Followers {
-			if following.Username == follower.Username {
-				found = true
-			}
-		}
-		if !found {
-			fmt.Printf("User %s does not follow you back... Profile URL: %s\n", following.Username, following.ProfileURL)
+	var tableRows []table.Row
+	for username, userData := range fd.Following {
+		if _, found := fd.Followers[username]; !found {
+			tableRows = append(tableRows, table.Row{userData.Username, userData.ProfileURL})
 		}
 	}
-	fmt.Println("=================================================================================================")
+	if len(tableRows) == 0 {
+		fmt.Println("No unfollowers found!")
+		return
+	}
+	unfollowersTable := table.NewWriter()
+	unfollowersTable.SetAutoIndex(true)
+	unfollowersTable.SetOutputMirror(os.Stdout)
+	unfollowersTable.SetStyle(table.StyleBold)
+	unfollowersTable.AppendHeader(table.Row{"USERNAME", "PROFILE URL"})
+	unfollowersTable.AppendRows(tableRows)
+	unfollowersTable.Render()
 }

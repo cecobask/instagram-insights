@@ -33,7 +33,7 @@ func main() {
 	if err := unzip(pathDataArchive, pathData); err != nil {
 		log.Fatal(err)
 	}
-	followData := &FollowData{}
+	followData := NewFollowData()
 	if err := followData.ExtractAllData(); err != nil {
 		log.Fatal(err)
 	}
