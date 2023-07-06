@@ -62,7 +62,7 @@ func downloadFile(url, fileName string) error {
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", response.Status)
+		return fmt.Errorf("failure downloading instagram data from google drive... http status: %s", response.Status)
 	}
 	if _, err = io.Copy(file, response.Body); err != nil {
 		return err
