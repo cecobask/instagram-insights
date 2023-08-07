@@ -17,7 +17,7 @@ const (
 	fileUrlFormat   = "https://drive.google.com/u/0/uc?id=%s&export=download&confirm=t"
 	pathData        = "instagram_data"
 	pathDataArchive = pathData + ".zip"
-	pathFollowers   = pathData + "/followers_and_following/followers_1.json"
+	pathFollowers   = pathData + "/followers_and_following/followers_*.json"
 	pathFollowing   = pathData + "/followers_and_following/following.json"
 )
 

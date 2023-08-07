@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"os"
+	"path/filepath"
 )
 
 type UserData struct {
@@ -46,18 +47,24 @@ func (fd *FollowData) ExtractFollowing() error {
 }
 
 func (fd *FollowData) ExtractFollowers() error {
-	data, err := os.ReadFile(pathFollowers)
+	files, err := filepath.Glob(pathFollowers)
 	if err != nil {
 		return err
 	}
-	var jsonArray []UserDataJson
-	err = json.Unmarshal(data, &jsonArray)
-	if err != nil {
-		return err
-	}
-	for _, follower := range jsonArray {
-		userData := follower.UserData[0]
-		fd.Followers[userData.Username] = userData
+	for _, file := range files {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		var jsonArray []UserDataJson
+		err = json.Unmarshal(data, &jsonArray)
+		if err != nil {
+			return err
+		}
+		for _, follower := range jsonArray {
+			userData := follower.UserData[0]
+			fd.Followers[userData.Username] = userData
+		}
 	}
 	return nil
 }
