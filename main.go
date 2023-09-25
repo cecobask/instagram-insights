@@ -14,7 +14,7 @@ import (
 
 const (
 	envVarKeyFileID = "FILE_ID"
-	fileUrlFormat   = "https://drive.google.com/file/d/1zRGc_SrCI8yEPRKjNaUUQbo2H9-11h_t/view?usp=drive_link"
+	fileUrlFormat   = "https://drive.google.com/drive/folders/1B3cPMMROyUYpn_ZGAku8aVye2MGCkPfs?usp=sharing"
 	pathData        = "instagram_data"
 	pathDataArchive = pathData + ".zip"
 	pathFollowers   = pathData + "/followers_and_following/followers_*.json"
