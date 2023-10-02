@@ -1,0 +1,25 @@
+name: unfollowers
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  ARCHIVE_URL: ${{ secrets.ARCHIVE_URL }}
+
+jobs:
+  findUnfollowers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.21'
+          cache: true
+      - name: Download instagram information locally
+        run: go run main.go information download $ARCHIVE_URL
+      - name: Find out which instagram users are not following back
+        run: go run main.go followdata unfollowers
+      - name: Cleanup local instagram information
+        run: go run main.go information cleanup
