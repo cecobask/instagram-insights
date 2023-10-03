@@ -1,8 +1,8 @@
 package root
 
 import (
-	"github.com/cecobask/instagram-unfollowers/cmd/followdata"
-	"github.com/cecobask/instagram-unfollowers/cmd/information"
+	"github.com/cecobask/instagram-insights/cmd/followdata"
+	"github.com/cecobask/instagram-insights/cmd/information"
 	"github.com/spf13/cobra"
 )
 

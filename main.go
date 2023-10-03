@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/cecobask/instagram-unfollowers/cmd/root"
+	"github.com/cecobask/instagram-insights/cmd/root"
 	"os"
 )
 

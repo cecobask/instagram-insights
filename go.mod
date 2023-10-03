@@ -1,4 +1,4 @@
-module github.com/cecobask/instagram-unfollowers
+module github.com/cecobask/instagram-insights
 
 go 1.21
 

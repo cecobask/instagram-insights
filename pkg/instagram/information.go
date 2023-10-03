@@ -2,7 +2,7 @@ package instagram
 
 import (
 	"fmt"
-	"github.com/cecobask/instagram-unfollowers/pkg/file"
+	"github.com/cecobask/instagram-insights/pkg/file"
 	"net/url"
 	"strings"
 )
