@@ -1,8 +1,5 @@
-name: unfollowers
+name: insights
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 env:
   ARCHIVE_URL: ${{ secrets.ARCHIVE_URL }}
@@ -15,9 +12,9 @@ jobs:
         with:
           go-version: 1.21
           cache: true
-      - name: Download instagram information locally
+      - name: Download Instagram information locally
         run: go run main.go information download $ARCHIVE_URL
-      - name: Find out which instagram users are not following back
+      - name: Find out which Instagram users are not following back
         run: go run main.go followdata unfollowers
-      - name: Cleanup local instagram information
+      - name: Cleanup local Instagram information
         run: go run main.go information cleanup

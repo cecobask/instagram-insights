@@ -36,11 +36,11 @@ Instagram data archive publicly accessible:
   - Left-click: `Done`
 - [ ] Set up your repository
   - Fork the [cecobask/instagram-insights](https://github.com/cecobask/instagram-insights) repository to your account
-  - Enable the `unfollowers` workflow ([help](https://docs.github.com/en/actions/using-workflows/disabling-and-enabling-a-workflow))
+  - Enable the `insights` workflow ([help](https://docs.github.com/en/actions/using-workflows/disabling-and-enabling-a-workflow))
   - Create a new repository secret ([help](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository)):
     - Name: `ARCHIVE_URL`
     - Secret: this must be equal to the value of your public archive url
-- [ ] Run the `unfollowers` workflow ([help](https://docs.github.com/en/actions/using-workflows/manually-running-a-workflow))
+- [ ] Run the `insights` workflow ([help](https://docs.github.com/en/actions/using-workflows/manually-running-a-workflow))
   - Shortly, check the console output of the workflow
   - If any users are not following back you will see who they are
 
