@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/cecobask/instagram-insights/cmd/root"
 	"os"
+
+	"github.com/cecobask/instagram-insights/cmd/root"
 )
 
 func main() {

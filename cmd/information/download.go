@@ -2,6 +2,7 @@ package information
 
 import (
 	"fmt"
+
 	"github.com/cecobask/instagram-insights/pkg/instagram"
 	"github.com/spf13/cobra"
 )

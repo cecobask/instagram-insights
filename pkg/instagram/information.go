@@ -2,9 +2,10 @@ package instagram
 
 import (
 	"fmt"
-	"github.com/cecobask/instagram-insights/pkg/file"
 	"net/url"
 	"strings"
+
+	"github.com/cecobask/instagram-insights/pkg/file"
 )
 
 func FetchInstagramInformation(archiveURL string) error {
@@ -15,10 +16,7 @@ func FetchInstagramInformation(archiveURL string) error {
 	if err = file.DownloadFile(archiveURL, pathDataArchive); err != nil {
 		return err
 	}
-	if err = file.UnzipFile(pathDataArchive, pathData); err != nil {
-		return err
-	}
-	return nil
+	return file.UnzipFile(pathDataArchive, pathData)
 }
 
 func CleanupInstagramInformation() error {
