@@ -3,9 +3,10 @@ package instagram
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jedib0t/go-pretty/v6/table"
 	"os"
 	"path/filepath"
+
+	"github.com/jedib0t/go-pretty/v6/table"
 )
 
 type User struct {

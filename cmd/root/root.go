@@ -9,7 +9,7 @@ import (
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "instagram",
-		Short: "Instagram operations",
+		Short: "Instagram Insights CLI",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
