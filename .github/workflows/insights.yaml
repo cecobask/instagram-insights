@@ -1,7 +1,6 @@
+name: insights
 on:
   workflow_dispatch:
-env:
-  ARCHIVE_URL: ${{ secrets.ARCHIVE_URL }}
 jobs:
   unfollowers:
     runs-on: ubuntu-latest
@@ -17,7 +16,7 @@ jobs:
       - name: Add build directory to path
         run: echo "${GITHUB_WORKSPACE}/build" >> $GITHUB_PATH
       - name: Download Instagram information locally
-        run: instagram information download $ARCHIVE_URL
+        run: instagram information download ${{ secrets.ARCHIVE_URL }}
       - name: Find out which Instagram users are not following back
         run: instagram followdata unfollowers
       - name: Cleanup local Instagram information

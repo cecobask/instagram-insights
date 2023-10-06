@@ -1,12 +1,14 @@
 package instagram
 
 const (
-	googleDriveParsedUrlFormat = "https://drive.google.com/u/0/uc?id=%s&export=download&confirm=t"
-	googleDriveHost            = "drive.google.com"
-	pathData                   = "instagram_data"
-	pathDataArchive            = pathData + ".zip"
-	pathFollowers              = pathData + "/followers_and_following/followers_*.json"
-	pathFollowing              = pathData + "/followers_and_following/following.json"
-	tableHeaderProfileUrl      = "PROFILE URL"
-	tableHeaderUsername        = "USERNAME"
+	GoogleDriveHost            = "drive.google.com"
+	GoogleDriveParsedUrlFormat = "https://drive.google.com/u/0/uc?id=%s&export=download&confirm=t"
+	OutputNone                 = "none"
+	OutputTable                = "table"
+	PathData                   = "instagram_data"
+	PathDataArchive            = PathData + ".zip"
+	PathFollowers              = PathData + "/followers_and_following/followers_*.json"
+	PathFollowing              = PathData + "/followers_and_following/following.json"
+	TableHeaderProfileUrl      = "PROFILE URL"
+	TableHeaderUsername        = "USERNAME"
 )

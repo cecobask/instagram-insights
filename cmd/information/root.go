@@ -2,13 +2,11 @@ package information
 
 import "github.com/spf13/cobra"
 
-type Options struct {
-	ArchiveDownloadURL string
-}
+const CommandNameInformation = "information"
 
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "information",
+		Use:   CommandNameInformation,
 		Short: "Instagram information operations",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
