@@ -1,4 +1,3 @@
-name: insights
 on:
   workflow_dispatch:
 env:
@@ -7,14 +6,19 @@ jobs:
   unfollowers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
         with:
           go-version: 1.21
-          cache: true
+      - name: Build
+        run: make build
+      - name: Add build directory to path
+        run: echo "${GITHUB_WORKSPACE}/build" >> $GITHUB_PATH
       - name: Download Instagram information locally
-        run: go run main.go information download $ARCHIVE_URL
+        run: instagram information download $ARCHIVE_URL
       - name: Find out which Instagram users are not following back
-        run: go run main.go followdata unfollowers
+        run: instagram followdata unfollowers
       - name: Cleanup local Instagram information
-        run: go run main.go information cleanup
+        run: instagram information cleanup
