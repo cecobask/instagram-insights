@@ -1,6 +1,9 @@
 # instagram-insights
 Discover various insights from your Instagram data.
 
+[![quality](https://github.com/cecobask/instagram-insights/actions/workflows/quality.yaml/badge.svg)](https://github.com/cecobask/instagram-insights/actions/workflows/quality.yaml)
+[![codecov](https://codecov.io/gh/cecobask/instagram-insights/graph/badge.svg)](https://codecov.io/gh/cecobask/instagram-insights)
+
 ## Use-cases
 - Find out which instagram users are not following back
 - Export followers and following lists

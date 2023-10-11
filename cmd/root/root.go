@@ -6,9 +6,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const CommandNameInstagram = "instagram"
+
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "instagram",
+		Use:   CommandNameInstagram,
 		Short: "Instagram Insights CLI",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()

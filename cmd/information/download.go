@@ -3,13 +3,15 @@ package information
 import (
 	"fmt"
 
-	"github.com/cecobask/instagram-insights/pkg/instagram"
+	"github.com/cecobask/instagram-insights/pkg/instagram/information"
 	"github.com/spf13/cobra"
 )
 
+const CommandNameDownload = "download"
+
 func NewDownloadCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "download <url>",
+		Use:   CommandNameDownload + " <url>",
 		Short: "Download instagram information locally",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
@@ -18,12 +20,7 @@ func NewDownloadCommand() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := instagram.FetchInstagramInformation(args[0])
-			if err != nil {
-				return err
-			}
-			fmt.Println("downloaded instagram information locally")
-			return nil
+			return information.NewHandler().Download(args[0])
 		},
 	}
 }

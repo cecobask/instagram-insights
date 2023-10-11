@@ -1,23 +1,18 @@
 package information
 
 import (
-	"fmt"
-
-	"github.com/cecobask/instagram-insights/pkg/instagram"
+	"github.com/cecobask/instagram-insights/pkg/instagram/information"
 	"github.com/spf13/cobra"
 )
 
+const CommandNameCleanup = "cleanup"
+
 func NewCleanupCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "cleanup",
+		Use:   CommandNameCleanup,
 		Short: "Cleanup local instagram information",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := instagram.CleanupInstagramInformation()
-			if err != nil {
-				return err
-			}
-			fmt.Println("cleaned up local instagram information")
-			return nil
+			return information.NewHandler().Cleanup()
 		},
 	}
 }

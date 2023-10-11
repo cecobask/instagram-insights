@@ -1,3 +1,4 @@
+build/
+coverage.out
 instagram_data.zip
 instagram_data/
-build/
