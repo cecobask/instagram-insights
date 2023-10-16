@@ -11,4 +11,5 @@ const (
 	PathFollowing              = PathData + "/followers_and_following/following.json"
 	TableHeaderProfileUrl      = "PROFILE URL"
 	TableHeaderUsername        = "USERNAME"
+	TableHeaderTimestamp       = "TIMESTAMP"
 )

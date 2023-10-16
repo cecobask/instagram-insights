@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/cecobask/instagram-insights/pkg/filesystem"
 	"github.com/cecobask/instagram-insights/pkg/instagram"
@@ -69,9 +70,9 @@ func (h *handler) Unfollowers(opts instagram.Options) error {
 }
 
 type followData struct {
-	Following   users
-	Followers   users
-	Unfollowers users
+	Following   *userList
+	Followers   *userList
+	Unfollowers *userList
 }
 
 type userData struct {
@@ -80,9 +81,18 @@ type userData struct {
 
 func newFollowData() *followData {
 	return &followData{
-		Following:   make(users),
-		Followers:   make(users),
-		Unfollowers: make(users),
+		Following: &userList{
+			users:         make(map[string]user),
+			showTimestamp: true,
+		},
+		Followers: &userList{
+			users:         make(map[string]user),
+			showTimestamp: true,
+		},
+		Unfollowers: &userList{
+			users:         make(map[string]user),
+			showTimestamp: false,
+		},
 	}
 }
 
@@ -91,9 +101,9 @@ func (fd *followData) hydrateFollowers(data []byte) error {
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return err
 	}
-	for _, follower := range jsonData {
-		userData := follower.UserData[0]
-		fd.Followers[userData.Username] = userData
+	for i := range jsonData {
+		ud := jsonData[i].UserData[0]
+		fd.Followers.users[ud.Username] = ud
 	}
 	return nil
 }
@@ -103,30 +113,50 @@ func (fd *followData) hydrateFollowing(data []byte) error {
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return err
 	}
-	for _, following := range jsonData["relationships_following"] {
-		userData := following.UserData[0]
-		fd.Following[userData.Username] = userData
+	for i := range jsonData["relationships_following"] {
+		ud := jsonData["relationships_following"][i].UserData[0]
+		fd.Following.users[ud.Username] = ud
 	}
 	return nil
 }
 
 func (fd *followData) hydrateUnfollowers() {
-	for username, user := range fd.Following {
-		if _, found := fd.Followers[username]; !found {
-			fd.Unfollowers[username] = user
+	for username, ud := range fd.Following.users {
+		if _, found := fd.Followers.users[username]; !found {
+			fd.Unfollowers.users[username] = ud
 		}
 	}
 }
 
-type user struct {
-	ProfileUrl string `json:"href"`
-	Username   string `json:"value"`
-	Timestamp  int    `json:"timestamp"`
+type timestamp struct {
+	time.Time
 }
 
-type users map[string]user
+func (t *timestamp) UnmarshalJSON(b []byte) error {
+	var unixTimestamp int64
+	if err := json.Unmarshal(b, &unixTimestamp); err != nil {
+		return err
+	}
+	t.Time = time.Unix(unixTimestamp, 0)
+	return nil
+}
 
-func (u users) output(format string) error {
+func (t *timestamp) String() string {
+	return t.Format(time.DateOnly)
+}
+
+type user struct {
+	ProfileUrl string     `json:"href"`
+	Username   string     `json:"value"`
+	Timestamp  *timestamp `json:"timestamp"`
+}
+
+type userList struct {
+	users         map[string]user
+	showTimestamp bool
+}
+
+func (u *userList) output(format string) error {
 	switch format {
 	case instagram.OutputTable:
 		return u.outputTable()
@@ -137,22 +167,30 @@ func (u users) output(format string) error {
 	}
 }
 
-func (u users) outputTable() error {
+func (u *userList) outputTable() error {
 	var rows []table.Row
-	for _, user := range u {
-		rows = append(rows, table.Row{
+	for _, user := range u.users {
+		row := table.Row{
 			user.Username,
 			user.ProfileUrl,
-		})
+		}
+		if u.showTimestamp {
+			row = append(row, user.Timestamp)
+		}
+		rows = append(rows, row)
+	}
+	headers := table.Row{
+		instagram.TableHeaderUsername,
+		instagram.TableHeaderProfileUrl,
+	}
+	if u.showTimestamp {
+		headers = append(headers, instagram.TableHeaderTimestamp)
 	}
 	usersTable := table.NewWriter()
 	usersTable.SetAutoIndex(true)
 	usersTable.SetOutputMirror(os.Stdout)
 	usersTable.SetStyle(table.StyleBold)
-	usersTable.AppendHeader(table.Row{
-		instagram.TableHeaderUsername,
-		instagram.TableHeaderProfileUrl,
-	})
+	usersTable.AppendHeader(headers)
 	usersTable.AppendRows(rows)
 	usersTable.Render()
 	return nil

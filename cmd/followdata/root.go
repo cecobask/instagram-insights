@@ -14,6 +14,8 @@ func NewRootCommand() *cobra.Command {
 			return cmd.Help()
 		},
 	}
+	cmd.AddCommand(NewFollowersCommand())
+	cmd.AddCommand(NewFollowingCommand())
 	cmd.AddCommand(NewUnfollowersCommand())
 	return cmd
 }
