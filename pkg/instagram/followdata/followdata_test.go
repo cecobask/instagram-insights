@@ -228,20 +228,23 @@ func Test_handler_Unfollowers(t *testing.T) {
 	}
 }
 
-func Test_users_output(t *testing.T) {
+func Test_userList_output(t *testing.T) {
 	type args struct {
 		format string
 	}
-	u := users{
-		"username": {
-			ProfileUrl: "https://www.instagram.com/username",
-			Username:   "username",
-			Timestamp:  0,
+	u := userList{
+		users: map[string]user{
+			"username": {
+				ProfileUrl: "https://www.instagram.com/username",
+				Username:   "username",
+				Timestamp:  &timestamp{},
+			},
 		},
+		showTimestamp: true,
 	}
 	tests := []struct {
 		name    string
-		u       users
+		u       userList
 		args    args
 		wantErr bool
 	}{
@@ -274,6 +277,40 @@ func Test_users_output(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.u.output(tt.args.format); (err != nil) != tt.wantErr {
 				t.Errorf("output() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_timestamp_UnmarshalJSON(t *testing.T) {
+	type args struct {
+		b []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "succeeds to unmarshal json",
+			args: args{
+				b: []byte("1697474963"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "fails to unmarshal json",
+			args: args{
+				b: []byte("invalid"),
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ts := &timestamp{}
+			if err := ts.UnmarshalJSON(tt.args.b); (err != nil) != tt.wantErr {
+				t.Errorf("UnmarshalJSON() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

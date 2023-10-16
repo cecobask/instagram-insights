@@ -6,15 +6,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const CommandNameUnfollowers = "unfollowers"
+const CommandNameFollowing = "following"
 
-func NewUnfollowersCommand() *cobra.Command {
+func NewFollowingCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   CommandNameUnfollowers,
-		Short: "Retrieve a list of users who are not following you back",
+		Use:   CommandNameFollowing,
+		Short: "Retrieve a list of users who you follow",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts := instagram.NewOptions(instagram.OutputTable)
-			return followdata.NewHandler().Unfollowers(opts)
+			return followdata.NewHandler().Following(opts)
 		},
 	}
 }
