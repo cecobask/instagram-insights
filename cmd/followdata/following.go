@@ -13,8 +13,22 @@ func NewFollowingCommand() *cobra.Command {
 		Use:   CommandNameFollowing,
 		Short: "Retrieve a list of users who you follow",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts := instagram.NewOptions(instagram.OutputTable)
-			return followdata.NewHandler().Following(opts)
+			o, err := cmd.Flags().GetString(instagram.FlagOutput)
+			if err != nil {
+				return err
+			}
+			output, err := instagram.NewOutput(o)
+			if err != nil {
+				return err
+			}
+			opts := instagram.NewOptions(*output)
+			following, err := followdata.NewHandler().Following(opts)
+			if err != nil {
+				return err
+			}
+			cmd.Print(*following)
+			return nil
 		},
+		DisableAutoGenTag: true,
 	}
 }

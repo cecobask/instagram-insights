@@ -5,22 +5,23 @@ import (
 )
 
 type Options struct {
-	Output string
+	Output Output
 }
 
-func NewOptions(output string) Options {
+func NewOptions(o Output) Options {
 	return Options{
-		Output: output,
+		Output: o,
 	}
 }
 
-func validateOutputOption(output string) error {
-	switch output {
-	case OutputTable:
-		return nil
-	case OutputNone:
-		return nil
+type Output string
+
+func NewOutput(value string) (*Output, error) {
+	switch value {
+	case string(OutputNone), string(OutputJson), string(OutputTable), string(OutputYaml):
+		o := Output(value)
+		return &o, nil
 	default:
-		return fmt.Errorf("invalid output format: %s", output)
+		return nil, fmt.Errorf("invalid output format: %s", value)
 	}
 }

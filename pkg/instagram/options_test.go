@@ -1,42 +1,49 @@
 package instagram
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
-func Test_validateOutputOption(t *testing.T) {
+func TestNewOutput(t *testing.T) {
 	type args struct {
-		output string
+		value string
 	}
 	tests := []struct {
 		name    string
 		args    args
+		want    *Output
 		wantErr bool
 	}{
 		{
-			name: "table output",
+			name: "succeeds to create output",
 			args: args{
-				output: OutputTable,
+				value: "json",
 			},
+			want: func() *Output {
+				o := OutputJson
+				return &o
+			}(),
 			wantErr: false,
 		},
 		{
-			name: "none output",
+			name: "fails to create output",
 			args: args{
-				output: OutputNone,
+				value: "invalid",
 			},
-			wantErr: false,
-		},
-		{
-			name: "invalid output",
-			args: args{
-				output: "invalid",
-			},
+			want:    nil,
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateOutputOption(tt.args.output); (err != nil) != tt.wantErr {
-				t.Errorf("validateOutputOption() error = %v, wantErr %v", err, tt.wantErr)
+			got, err := NewOutput(tt.args.value)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewOutput() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewOutput() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

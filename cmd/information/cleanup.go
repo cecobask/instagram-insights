@@ -14,5 +14,6 @@ func NewCleanupCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return information.NewHandler().Cleanup()
 		},
+		DisableAutoGenTag: true,
 	}
 }

@@ -22,5 +22,6 @@ func NewDownloadCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return information.NewHandler().Download(args[0])
 		},
+		DisableAutoGenTag: true,
 	}
 }

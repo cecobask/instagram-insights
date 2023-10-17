@@ -3,18 +3,18 @@ package followdata
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/cecobask/instagram-insights/pkg/filesystem"
 	"github.com/cecobask/instagram-insights/pkg/instagram"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"gopkg.in/yaml.v3"
 )
 
 type Interface interface {
-	Followers(opts instagram.Options) error
-	Following(opts instagram.Options) error
-	Unfollowers(opts instagram.Options) error
+	Followers(opts instagram.Options) (*string, error)
+	Following(opts instagram.Options) (*string, error)
+	Unfollowers(opts instagram.Options) (*string, error)
 }
 
 type handler struct {
@@ -29,41 +29,41 @@ func NewHandler() Interface {
 	}
 }
 
-func (h *handler) Followers(opts instagram.Options) error {
+func (h *handler) Followers(opts instagram.Options) (*string, error) {
 	files, err := h.fileSystem.FindFiles(instagram.PathFollowers)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for i := range files {
 		data, err := h.fileSystem.ReadFile(files[i])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if err = h.followData.hydrateFollowers(data); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	return h.followData.Followers.output(opts.Output)
 }
 
-func (h *handler) Following(opts instagram.Options) error {
+func (h *handler) Following(opts instagram.Options) (*string, error) {
 	data, err := h.fileSystem.ReadFile(instagram.PathFollowing)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err = h.followData.hydrateFollowing(data); err != nil {
-		return err
+		return nil, err
 	}
 	return h.followData.Following.output(opts.Output)
 }
 
-func (h *handler) Unfollowers(opts instagram.Options) error {
+func (h *handler) Unfollowers(opts instagram.Options) (*string, error) {
 	childOptions := instagram.NewOptions(instagram.OutputNone)
-	if err := h.Followers(childOptions); err != nil {
-		return err
+	if _, err := h.Followers(childOptions); err != nil {
+		return nil, err
 	}
-	if err := h.Following(childOptions); err != nil {
-		return err
+	if _, err := h.Following(childOptions); err != nil {
+		return nil, err
 	}
 	h.followData.hydrateUnfollowers()
 	return h.followData.Unfollowers.output(opts.Output)
@@ -156,18 +156,40 @@ type userList struct {
 	showTimestamp bool
 }
 
-func (u *userList) output(format string) error {
+func (u *userList) output(format instagram.Output) (*string, error) {
 	switch format {
+	case instagram.OutputNone:
+		return u.outputNone()
+	case instagram.OutputJson:
+		return u.outputJson()
 	case instagram.OutputTable:
 		return u.outputTable()
-	case instagram.OutputNone:
-		return nil
+	case instagram.OutputYaml:
+		return u.outputYaml()
 	default:
-		return fmt.Errorf("invalid output format: %s", format)
+		return nil, fmt.Errorf("invalid output format: %s", format)
 	}
 }
 
-func (u *userList) outputTable() error {
+func (u *userList) outputNone() (*string, error) {
+	output := ""
+	return &output, nil
+}
+
+func (u *userList) outputJson() (*string, error) {
+	var users []user
+	for i := range u.users {
+		users = append(users, u.users[i])
+	}
+	data, err := json.MarshalIndent(users, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	output := string(data)
+	return &output, nil
+}
+
+func (u *userList) outputTable() (*string, error) {
 	var rows []table.Row
 	for _, user := range u.users {
 		row := table.Row{
@@ -188,10 +210,22 @@ func (u *userList) outputTable() error {
 	}
 	usersTable := table.NewWriter()
 	usersTable.SetAutoIndex(true)
-	usersTable.SetOutputMirror(os.Stdout)
 	usersTable.SetStyle(table.StyleBold)
 	usersTable.AppendHeader(headers)
 	usersTable.AppendRows(rows)
-	usersTable.Render()
-	return nil
+	output := usersTable.Render()
+	return &output, nil
+}
+
+func (u *userList) outputYaml() (*string, error) {
+	var users []user
+	for i := range u.users {
+		users = append(users, u.users[i])
+	}
+	data, err := yaml.Marshal(users)
+	if err != nil {
+		return nil, err
+	}
+	output := string(data)
+	return &output, nil
 }

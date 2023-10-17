@@ -18,6 +18,6 @@ jobs:
       - name: Download Instagram information locally
         run: instagram information download ${{ secrets.ARCHIVE_URL }}
       - name: Find out which Instagram users are not following back
-        run: instagram followdata unfollowers
+        run: instagram followdata unfollowers -o table
       - name: Cleanup local Instagram information
         run: instagram information cleanup

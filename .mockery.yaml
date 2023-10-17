@@ -1,9 +1,8 @@
+outpkg: "{{.PackageName}}"
+dir: "{{.InterfaceDir}}"
+filename: "{{.PackageName}}_mock.go"
+inpackage: true
 packages:
   github.com/cecobask/instagram-insights/pkg/filesystem:
     interfaces:
       Fs:
-        config:
-          dir: "{{.InterfaceDir}}"
-          filename: "{{.PackageName}}_mock.go"
-          inpackage: true
-          outpkg: "{{.PackageName}}"
