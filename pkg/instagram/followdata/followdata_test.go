@@ -80,7 +80,7 @@ func Test_handler_Followers(t *testing.T) {
 				tt.expectations(f)
 			}
 			opts := instagram.NewOptions(instagram.OutputNone)
-			if err := h.Followers(opts); (err != nil) != tt.wantErr {
+			if _, err := h.Followers(opts); (err != nil) != tt.wantErr {
 				t.Errorf("Followers() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.assertions != nil {
@@ -146,7 +146,7 @@ func Test_handler_Following(t *testing.T) {
 				tt.expectations(f)
 			}
 			opts := instagram.NewOptions(instagram.OutputNone)
-			if err := h.Following(opts); (err != nil) != tt.wantErr {
+			if _, err := h.Following(opts); (err != nil) != tt.wantErr {
 				t.Errorf("Following() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.assertions != nil {
@@ -218,7 +218,7 @@ func Test_handler_Unfollowers(t *testing.T) {
 				tt.expectations(f)
 			}
 			opts := instagram.NewOptions(instagram.OutputNone)
-			if err := h.Unfollowers(opts); (err != nil) != tt.wantErr {
+			if _, err := h.Unfollowers(opts); (err != nil) != tt.wantErr {
 				t.Errorf("Unfollowers() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.assertions != nil {
@@ -249,10 +249,26 @@ func Test_userList_output(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "succeeds to output json",
+			u:    u,
+			args: args{
+				format: instagram.OutputJson,
+			},
+			wantErr: false,
+		},
+		{
 			name: "succeeds to output table",
 			u:    u,
 			args: args{
 				format: instagram.OutputTable,
+			},
+			wantErr: false,
+		},
+		{
+			name: "succeeds to output yaml",
+			u:    u,
+			args: args{
+				format: instagram.OutputYaml,
 			},
 			wantErr: false,
 		},
@@ -275,7 +291,7 @@ func Test_userList_output(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.u.output(tt.args.format); (err != nil) != tt.wantErr {
+			if _, err := tt.u.output(tt.args.format); (err != nil) != tt.wantErr {
 				t.Errorf("output() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

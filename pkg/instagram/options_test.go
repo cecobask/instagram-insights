@@ -2,9 +2,9 @@ package instagram
 
 import "testing"
 
-func Test_validateOutputOption(t *testing.T) {
+func Test_validateOutput(t *testing.T) {
 	type args struct {
-		output string
+		value string
 	}
 	tests := []struct {
 		name    string
@@ -12,31 +12,53 @@ func Test_validateOutputOption(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "table output",
+			name: "valid output",
 			args: args{
-				output: OutputTable,
-			},
-			wantErr: false,
-		},
-		{
-			name: "none output",
-			args: args{
-				output: OutputNone,
+				value: OutputNone,
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid output",
 			args: args{
-				output: "invalid",
+				value: "invalid",
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateOutputOption(tt.args.output); (err != nil) != tt.wantErr {
-				t.Errorf("validateOutputOption() error = %v, wantErr %v", err, tt.wantErr)
+			if err := validateOutput(tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("validateOutput() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOptions_Validate(t *testing.T) {
+	type fields struct {
+		Output string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			name: "succeeds to validate options",
+			fields: fields{
+				Output: OutputNone,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := Options{
+				Output: tt.fields.Output,
+			}
+			if err := o.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

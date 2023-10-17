@@ -14,13 +14,15 @@ func NewOptions(output string) Options {
 	}
 }
 
-func validateOutputOption(output string) error {
-	switch output {
-	case OutputTable:
-		return nil
-	case OutputNone:
+func (o Options) Validate() error {
+	return validateOutput(o.Output)
+}
+
+func validateOutput(value string) error {
+	switch value {
+	case OutputNone, OutputJson, OutputTable, OutputYaml:
 		return nil
 	default:
-		return fmt.Errorf("invalid output format: %s", output)
+		return fmt.Errorf("invalid output format: %s", value)
 	}
 }

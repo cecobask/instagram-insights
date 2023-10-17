@@ -3,18 +3,19 @@ package followdata
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"strconv"
 	"time"
 
 	"github.com/cecobask/instagram-insights/pkg/filesystem"
 	"github.com/cecobask/instagram-insights/pkg/instagram"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"gopkg.in/yaml.v3"
 )
 
 type Interface interface {
-	Followers(opts instagram.Options) error
-	Following(opts instagram.Options) error
-	Unfollowers(opts instagram.Options) error
+	Followers(opts instagram.Options) (*string, error)
+	Following(opts instagram.Options) (*string, error)
+	Unfollowers(opts instagram.Options) (*string, error)
 }
 
 type handler struct {
@@ -29,41 +30,41 @@ func NewHandler() Interface {
 	}
 }
 
-func (h *handler) Followers(opts instagram.Options) error {
+func (h *handler) Followers(opts instagram.Options) (*string, error) {
 	files, err := h.fileSystem.FindFiles(instagram.PathFollowers)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for i := range files {
 		data, err := h.fileSystem.ReadFile(files[i])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if err = h.followData.hydrateFollowers(data); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	return h.followData.Followers.output(opts.Output)
 }
 
-func (h *handler) Following(opts instagram.Options) error {
+func (h *handler) Following(opts instagram.Options) (*string, error) {
 	data, err := h.fileSystem.ReadFile(instagram.PathFollowing)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err = h.followData.hydrateFollowing(data); err != nil {
-		return err
+		return nil, err
 	}
 	return h.followData.Following.output(opts.Output)
 }
 
-func (h *handler) Unfollowers(opts instagram.Options) error {
+func (h *handler) Unfollowers(opts instagram.Options) (*string, error) {
 	childOptions := instagram.NewOptions(instagram.OutputNone)
-	if err := h.Followers(childOptions); err != nil {
-		return err
+	if _, err := h.Followers(childOptions); err != nil {
+		return nil, err
 	}
-	if err := h.Following(childOptions); err != nil {
-		return err
+	if _, err := h.Following(childOptions); err != nil {
+		return nil, err
 	}
 	h.followData.hydrateUnfollowers()
 	return h.followData.Unfollowers.output(opts.Output)
@@ -76,7 +77,7 @@ type followData struct {
 }
 
 type userData struct {
-	UserData []user `json:"string_list_data"`
+	UserData []userOriginal `json:"string_list_data"`
 }
 
 func newFollowData() *followData {
@@ -103,7 +104,13 @@ func (fd *followData) hydrateFollowers(data []byte) error {
 	}
 	for i := range jsonData {
 		ud := jsonData[i].UserData[0]
-		fd.Followers.users[ud.Username] = ud
+		fd.Followers.users[ud.Value] = user{
+			ProfileUrl: ud.Href,
+			Username:   ud.Value,
+			Timestamp: &timestamp{
+				Time: time.Unix(int64(ud.Timestamp), 0),
+			},
+		}
 	}
 	return nil
 }
@@ -115,7 +122,13 @@ func (fd *followData) hydrateFollowing(data []byte) error {
 	}
 	for i := range jsonData["relationships_following"] {
 		ud := jsonData["relationships_following"][i].UserData[0]
-		fd.Following.users[ud.Username] = ud
+		fd.Following.users[ud.Value] = user{
+			ProfileUrl: ud.Href,
+			Username:   ud.Value,
+			Timestamp: &timestamp{
+				Time: time.Unix(int64(ud.Timestamp), 0),
+			},
+		}
 	}
 	return nil
 }
@@ -132,6 +145,10 @@ type timestamp struct {
 	time.Time
 }
 
+func (t *timestamp) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(t.String())), nil
+}
+
 func (t *timestamp) UnmarshalJSON(b []byte) error {
 	var unixTimestamp int64
 	if err := json.Unmarshal(b, &unixTimestamp); err != nil {
@@ -141,14 +158,24 @@ func (t *timestamp) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (t *timestamp) MarshalYAML() (interface{}, error) {
+	return t.String(), nil
+}
+
 func (t *timestamp) String() string {
 	return t.Format(time.DateOnly)
 }
 
+type userOriginal struct {
+	Href      string `json:"href"`
+	Value     string `json:"value"`
+	Timestamp int    `json:"timestamp"`
+}
+
 type user struct {
-	ProfileUrl string     `json:"href"`
-	Username   string     `json:"value"`
-	Timestamp  *timestamp `json:"timestamp"`
+	ProfileUrl string     `json:"profileUrl" yaml:"profileUrl"`
+	Username   string     `json:"username" yaml:"username"`
+	Timestamp  *timestamp `json:"timestamp" yaml:"timestamp"`
 }
 
 type userList struct {
@@ -156,18 +183,40 @@ type userList struct {
 	showTimestamp bool
 }
 
-func (u *userList) output(format string) error {
+func (u *userList) output(format string) (*string, error) {
 	switch format {
+	case instagram.OutputJson:
+		return u.outputJson()
+	case instagram.OutputNone:
+		return u.outputNone()
 	case instagram.OutputTable:
 		return u.outputTable()
-	case instagram.OutputNone:
-		return nil
+	case instagram.OutputYaml:
+		return u.outputYaml()
 	default:
-		return fmt.Errorf("invalid output format: %s", format)
+		return nil, fmt.Errorf("invalid output format: %s", format)
 	}
 }
 
-func (u *userList) outputTable() error {
+func (u *userList) outputNone() (*string, error) {
+	output := ""
+	return &output, nil
+}
+
+func (u *userList) outputJson() (*string, error) {
+	var users []user
+	for i := range u.users {
+		users = append(users, u.users[i])
+	}
+	data, err := json.MarshalIndent(users, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	output := string(data)
+	return &output, nil
+}
+
+func (u *userList) outputTable() (*string, error) {
 	var rows []table.Row
 	for _, user := range u.users {
 		row := table.Row{
@@ -179,19 +228,31 @@ func (u *userList) outputTable() error {
 		}
 		rows = append(rows, row)
 	}
-	headers := table.Row{
+	header := table.Row{
 		instagram.TableHeaderUsername,
 		instagram.TableHeaderProfileUrl,
 	}
 	if u.showTimestamp {
-		headers = append(headers, instagram.TableHeaderTimestamp)
+		header = append(header, instagram.TableHeaderTimestamp)
 	}
 	usersTable := table.NewWriter()
 	usersTable.SetAutoIndex(true)
-	usersTable.SetOutputMirror(os.Stdout)
 	usersTable.SetStyle(table.StyleBold)
-	usersTable.AppendHeader(headers)
+	usersTable.AppendHeader(header)
 	usersTable.AppendRows(rows)
-	usersTable.Render()
-	return nil
+	output := usersTable.Render()
+	return &output, nil
+}
+
+func (u *userList) outputYaml() (*string, error) {
+	var users []user
+	for i := range u.users {
+		users = append(users, u.users[i])
+	}
+	data, err := yaml.Marshal(users)
+	if err != nil {
+		return nil, err
+	}
+	output := string(data)
+	return &output, nil
 }
