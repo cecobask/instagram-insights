@@ -18,7 +18,7 @@ func NewRootCommand() *cobra.Command {
 		},
 		DisableAutoGenTag: true,
 	}
-	cmd.AddCommand(NewDownloadCommand())
+	cmd.AddCommand(NewLoadCommand())
 	cmd.AddCommand(NewCleanupCommand())
 	return cmd
 }

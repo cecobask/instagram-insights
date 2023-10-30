@@ -5,8 +5,8 @@ Discover various insights from your Instagram data.
 [![codecov](https://codecov.io/gh/cecobask/instagram-insights/graph/badge.svg)](https://codecov.io/gh/cecobask/instagram-insights)
 
 ## Use-cases
-- Find out which instagram users are not following back
-- Export followers and following lists
+- Find out which users are not following you back
+- Export followers and following user lists in various formats (JSON, YAML, Table)
 
 ## Prerequisites
 Complete all steps from this section.
@@ -25,27 +25,30 @@ your data, select the following options:
 ### Prepare your Instagram data
 When your Instagram data is ready to be downloaded, you will receive an email notification.  
 After downloading the zip archive, containing your Instagram data, you will have two options, depending on your use-case:
-- [ ] Option 1: [Run the application on your machine](#run-the-application-on-your-machine)
-- [ ] Option 2: [Run the application using GitHub Actions workflow](#run-the-application-using-github-actions-workflow)
+- [ ] Option 1: [Run the application using GitHub Actions workflow](#run-the-application-using-github-actions-workflow)
+- [ ] Option 2: [Run the application on your machine](#run-the-application-on-your-machine)
 
 ## Run the application using GitHub Actions workflow
 - [ ] Upload the zip file, containing your Instagram data, to a cloud storage service. Afterward, generate a public link to
 the archive. The most common cloud storage service is probably Google Drive. Following the steps below will make your 
 Instagram data archive publicly accessible:
-  - Right-click: `Share`
-  - General access: `Anyone with the link`
-  - Role: `Viewer`
-  - Left-click: `Copy link`
-  - Left-click: `Done`
+  - Right-click your archive and open the `Share` menu
+  - In the `General access` section use the dropdown menu and select `Anyone with the link`
+  - Select role `Viewer`
+  - Use the `Copy link` button to copy the public link to your archive
 - [ ] Set up your repository
   - Fork the [cecobask/instagram-insights](https://github.com/cecobask/instagram-insights) repository to your account
   - Enable the `insights` workflow ([help](https://docs.github.com/en/actions/using-workflows/disabling-and-enabling-a-workflow))
   - Create a new repository secret ([help](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository)):
     - Name: `ARCHIVE_URL`
-    - Secret: this must be equal to the value of your public archive url
+    - Secret: this must be equal to the value of your public archive url (_previously copied_)
 - [ ] Run the `insights` workflow ([help](https://docs.github.com/en/actions/using-workflows/manually-running-a-workflow))
-  - Shortly, check the console output of the workflow
-  - If any users are not following back you will see who they are
+  - Shortly, check the console output of the workflow for results
 
 ## Run the application on your machine
-**TBA**
+- [ ] Download and install [Git](https://git-scm.com/downloads) + [Go](https://go.dev/doc/install)
+- [ ] Clone the repository
+- [ ] Build the application: `make build`
+- [ ] Add the application to your path
+- [ ] Load your Instagram data from a local zip file or cloud storage: `instagram information load <source>`
+- [ ] Discover the available commands or browse through the [documentation](docs/instagram.md): `instagram --help`

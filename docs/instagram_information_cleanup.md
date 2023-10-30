@@ -1,6 +1,6 @@
 ## instagram information cleanup
 
-Cleanup local instagram information
+Cleanup local Instagram information
 
 ```
 instagram information cleanup [flags]

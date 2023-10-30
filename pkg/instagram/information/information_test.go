@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/cecobask/instagram-insights/pkg/filesystem"
@@ -64,12 +66,12 @@ func Test_informationHandler_Cleanup(t *testing.T) {
 	}
 }
 
-func Test_informationHandler_Download(t *testing.T) {
+func Test_informationHandler_Load(t *testing.T) {
 	type fields struct {
 		fileSystem *filesystem.MockFs
 	}
 	type args struct {
-		url string
+		source string
 	}
 	tests := []struct {
 		name           string
@@ -80,9 +82,22 @@ func Test_informationHandler_Download(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name: "succeeds to download file",
+			name: "succeeds to load information from file source",
 			args: args{
-				url: "",
+				source: "file:///home/username/Desktop/instagram_data.zip",
+			},
+			expectations: func(f *fields) {
+				f.fileSystem.On("Unzip", "/home/username/Desktop/instagram_data.zip", instagram.PathData).Return(nil)
+			},
+			assertions: func(t *testing.T, f *fields) {
+				f.fileSystem.AssertNumberOfCalls(t, "Unzip", 1)
+			},
+			wantErr: false,
+		},
+		{
+			name: "succeeds to load information from http source",
+			args: args{
+				source: "", // dynamically set at runtime
 			},
 			httpStatusCode: http.StatusOK,
 			expectations: func(f *fields) {
@@ -99,16 +114,23 @@ func Test_informationHandler_Download(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "fails to parse archive url",
+			name: "fails to transform http url",
 			args: args{
-				url: string(rune(0x7f)),
+				source: "https://drive.google.com/file/d",
+			},
+			wantErr: true,
+		},
+		{
+			name: "fails to validate archive source",
+			args: args{
+				source: "ftp://example.com",
 			},
 			wantErr: true,
 		},
 		{
 			name: "fails to create file",
 			args: args{
-				url: "",
+				source: "",
 			},
 			expectations: func(f *fields) {
 				f.fileSystem.On("CreateFile", instagram.PathDataArchive).Return(nil, fmt.Errorf("fails to create file"))
@@ -121,7 +143,7 @@ func Test_informationHandler_Download(t *testing.T) {
 		{
 			name: "fails to issue http get request",
 			args: args{
-				url: "example.com",
+				source: "",
 			},
 			expectations: func(f *fields) {
 				f.fileSystem.On("CreateFile", instagram.PathDataArchive).Return(&os.File{}, nil)
@@ -134,7 +156,7 @@ func Test_informationHandler_Download(t *testing.T) {
 		{
 			name: "fails to get healthy http status code",
 			args: args{
-				url: "",
+				source: "",
 			},
 			httpStatusCode: http.StatusNotFound,
 			expectations: func(f *fields) {
@@ -149,7 +171,7 @@ func Test_informationHandler_Download(t *testing.T) {
 		{
 			name: "fails to copy http response body to file",
 			args: args{
-				url: "",
+				source: "",
 			},
 			httpStatusCode: http.StatusOK,
 			expectations: func(f *fields) {
@@ -166,10 +188,10 @@ func Test_informationHandler_Download(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.args.url == "" {
+			if tt.args.source == "" {
 				server := createHttpServerWithStatus(tt.httpStatusCode)
 				defer server.Close()
-				tt.args.url = server.URL
+				tt.args.source = server.URL
 			}
 			f := &fields{
 				fileSystem: &filesystem.MockFs{},
@@ -180,8 +202,8 @@ func Test_informationHandler_Download(t *testing.T) {
 			if tt.expectations != nil {
 				tt.expectations(f)
 			}
-			if err := h.Download(tt.args.url); (err != nil) != tt.wantErr {
-				t.Errorf("Download() error = %v, wantErr %v", err, tt.wantErr)
+			if err := h.Load(tt.args.source); (err != nil) != tt.wantErr {
+				t.Errorf("Load() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.assertions != nil {
 				tt.assertions(t, f)
@@ -190,58 +212,121 @@ func Test_informationHandler_Download(t *testing.T) {
 	}
 }
 
-func Test_parseArchiveURL(t *testing.T) {
+func Test_transformHttpUrl(t *testing.T) {
 	type args struct {
-		archiveURL string
+		httpUrl *url.URL
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    string
+		want    *url.URL
 		wantErr bool
 	}{
 		{
-			name: "valid generic url",
+			name: "parses generic url",
 			args: args{
-				archiveURL: "https://example.com",
+				httpUrl: &url.URL{
+					Scheme: "https",
+					Host:   "example.com",
+				},
 			},
-			want:    "https://example.com",
+			want: &url.URL{
+				Scheme: "https",
+				Host:   "example.com",
+			},
 			wantErr: false,
 		},
 		{
-			name: "google drive url",
+			name: "transforms google drive url",
 			args: args{
-				archiveURL: "https://drive.google.com/file/d/gMFOVXYdhBK8gMnYjqcmocf7HWLUK1dnP",
+				httpUrl: &url.URL{
+					Scheme: "https",
+					Host:   instagram.GoogleDriveHost,
+					Path:   "/file/d/gMFOVXYdhBK8gMnYjqcmocf7HWLUK1dnP",
+				},
 			},
-			want:    "https://drive.google.com/u/0/uc?id=gMFOVXYdhBK8gMnYjqcmocf7HWLUK1dnP&export=download&confirm=t",
+			want: &url.URL{
+				Scheme:   "https",
+				Host:     instagram.GoogleDriveHost,
+				Path:     "/u/0/uc",
+				RawQuery: "id=gMFOVXYdhBK8gMnYjqcmocf7HWLUK1dnP&export=download&confirm=t",
+			},
 			wantErr: false,
 		},
 		{
-			name: "google drive url with invalid path",
+			name: "fails to transform google drive url",
 			args: args{
-				archiveURL: "https://drive.google.com/file/d",
+				httpUrl: &url.URL{
+					Scheme: "https",
+					Host:   instagram.GoogleDriveHost,
+					Path:   "/file/d",
+				},
 			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name: "invalid url",
-			args: args{
-				archiveURL: string(rune(0x7f)),
-			},
-			want:    "",
+			want:    nil,
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseArchiveURL(tt.args.archiveURL)
+			got, err := transformHttpUrl(tt.args.httpUrl)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseArchiveURL() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("transformHttpUrl() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("parseArchiveURL() got = %v, want %v", got, tt.want)
+			if got != nil && got.String() != tt.want.String() {
+				t.Errorf("transformHttpUrl() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_validateArchiveSource(t *testing.T) {
+	type args struct {
+		source string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *url.URL
+		wantErr bool
+	}{
+		{
+			name: "validates archive source",
+			args: args{
+				source: "https://example.com",
+			},
+			want: &url.URL{
+				Scheme: "https",
+				Host:   "example.com",
+			},
+			wantErr: false,
+		},
+		{
+			name: "fails to parse url",
+			args: args{
+				source: string(rune(0x7f)),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "fails to validate scheme",
+			args: args{
+				source: "ftp://example.com",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := validateArchiveSource(tt.args.source)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateArchiveSource() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("validateArchiveSource() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -15,9 +15,9 @@ jobs:
         run: make build
       - name: Add build directory to path
         run: echo "${GITHUB_WORKSPACE}/build" >> $GITHUB_PATH
-      - name: Download Instagram information locally
-        run: instagram information download ${{ secrets.ARCHIVE_URL }}
-      - name: Find out which Instagram users are not following back
+      - name: Load Instagram information
+        run: instagram information load ${{ secrets.ARCHIVE_URL }}
+      - name: Retrieve a list of users who are not following you back
         run: instagram followdata unfollowers
       - name: Cleanup local Instagram information
         run: instagram information cleanup

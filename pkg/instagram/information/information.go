@@ -12,7 +12,7 @@ import (
 
 type Interface interface {
 	Cleanup() error
-	Download(url string) error
+	Load(source string) error
 }
 
 type handler struct {
@@ -38,8 +38,15 @@ func (h *handler) Cleanup() error {
 	return nil
 }
 
-func (h *handler) Download(url string) error {
-	archiveURL, err := parseArchiveURL(url)
+func (h *handler) Load(source string) error {
+	archiveURL, err := validateArchiveSource(source)
+	if err != nil {
+		return err
+	}
+	if archiveURL.Scheme == "file" {
+		return h.fileSystem.Unzip(archiveURL.Path, instagram.PathData)
+	}
+	archiveURL, err = transformHttpUrl(archiveURL)
 	if err != nil {
 		return err
 	}
@@ -48,7 +55,7 @@ func (h *handler) Download(url string) error {
 		return err
 	}
 	defer file.Close()
-	response, err := http.Get(archiveURL)
+	response, err := http.Get(archiveURL.String())
 	if err != nil {
 		return err
 	}
@@ -62,19 +69,29 @@ func (h *handler) Download(url string) error {
 	return h.fileSystem.Unzip(instagram.PathDataArchive, instagram.PathData)
 }
 
-func parseArchiveURL(archiveURL string) (string, error) {
-	parsedURL, err := url.Parse(archiveURL)
+func validateArchiveSource(source string) (*url.URL, error) {
+	parsedURL, err := url.Parse(source)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	switch parsedURL.Host {
-	case instagram.GoogleDriveHost:
-		pathSegments := strings.Split(parsedURL.Path, "/")
-		if len(pathSegments) < 4 {
-			return "", fmt.Errorf("received invalid google drive url %s - it must be similar to this https://drive.google.com/file/d/8FOVUK1cYjgMnocmf7gMqXYdhBKHWLdnP", archiveURL)
-		}
-		return fmt.Sprintf(instagram.GoogleDriveParsedUrlFormat, pathSegments[3]), err
+	switch parsedURL.Scheme {
+	case "http", "https", "file":
+		return parsedURL, nil
 	default:
-		return archiveURL, nil
+		return nil, fmt.Errorf("unsupported source scheme: %s", parsedURL.Scheme)
+	}
+
+}
+
+func transformHttpUrl(httpUrl *url.URL) (*url.URL, error) {
+	switch httpUrl.Host {
+	case instagram.GoogleDriveHost:
+		pathSegments := strings.Split(httpUrl.Path, "/")
+		if len(pathSegments) < 4 {
+			return nil, fmt.Errorf("received invalid google drive source %s - it must be similar to this https://drive.google.com/file/d/8FOVUK1cYjgMnocmf7gMqXYdhBKHWLdnP", httpUrl.String())
+		}
+		return url.Parse(fmt.Sprintf(instagram.GoogleDriveParsedUrlFormat, pathSegments[3]))
+	default:
+		return httpUrl, nil
 	}
 }

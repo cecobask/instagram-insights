@@ -15,6 +15,6 @@ instagram information [command] [flags]
 ### SEE ALSO
 
 * [instagram](instagram.md)	 - Instagram Insights CLI
-* [instagram information cleanup](instagram_information_cleanup.md)	 - Cleanup local instagram information
-* [instagram information download](instagram_information_download.md)	 - Download instagram information locally
+* [instagram information cleanup](instagram_information_cleanup.md)	 - Cleanup local Instagram information
+* [instagram information load](instagram_information_load.md)	 - Load Instagram information
 
