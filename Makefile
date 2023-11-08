@@ -4,6 +4,7 @@ build:
 	go build -o build/instagram main.go
 
 docs:
+	rm -rf docs/*
 	go run cmd/docs/main.go
 
 fmt:

@@ -1,14 +1,20 @@
 package instagram
 
 const (
-	OutputJson  = "json"
-	OutputNone  = "none"
-	OutputTable = "table"
-	OutputYaml  = "yaml"
+	FieldTimestamp = "timestamp"
+	FieldUsername  = "username"
+	OrderAsc       = "asc"
+	OrderDesc      = "desc"
+	OutputJson     = "json"
+	OutputNone     = "none"
+	OutputTable    = "table"
+	OutputYaml     = "yaml"
 )
 
 const (
+	FlagOrder                  = "order"
 	FlagOutput                 = "output"
+	FlagSortBy                 = "sort-by"
 	GoogleDriveHost            = "drive.google.com"
 	GoogleDriveParsedUrlFormat = "https://drive.google.com/u/0/uc?id=%s&export=download&confirm=t"
 	PathData                   = "instagram_data"

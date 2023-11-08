@@ -19,11 +19,16 @@ func NewRootCommand() *cobra.Command {
 		},
 		DisableAutoGenTag: true,
 	}
-	cmd.AddCommand(NewFollowersCommand())
-	cmd.AddCommand(NewFollowingCommand())
-	cmd.AddCommand(NewUnfollowersCommand())
-	for _, childCmd := range cmd.Commands() {
-		childCmd.Flags().StringP(instagram.FlagOutput, "o", instagram.OutputTable, `output format ("json", "table", "yaml")`)
-	}
+	cmd.AddCommand(
+		NewFollowersCommand(),
+		NewFollowingCommand(),
+		NewUnfollowersCommand(),
+	)
 	return cmd
+}
+
+func addCommonFlags(cmd *cobra.Command) {
+	cmd.Flags().String(instagram.FlagOrder, instagram.OrderDesc, `order direction ("asc", "desc")`)
+	cmd.Flags().String(instagram.FlagOutput, instagram.OutputTable, `output format ("json", "table", "yaml")`)
+	cmd.Flags().String(instagram.FlagSortBy, instagram.FieldTimestamp, `sort by field ("timestamp", "username")`)
 }
