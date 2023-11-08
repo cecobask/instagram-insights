@@ -24,8 +24,12 @@ func NewRootCommand() *cobra.Command {
 		SilenceUsage:      true,
 		DisableAutoGenTag: true,
 	}
-	cmd.SetHelpCommand(&cobra.Command{Hidden: true})
-	cmd.AddCommand(information.NewRootCommand())
-	cmd.AddCommand(followdata.NewRootCommand())
+	cmd.AddCommand(
+		information.NewRootCommand(),
+		followdata.NewRootCommand(),
+	)
+	cmd.SetHelpCommand(&cobra.Command{
+		Hidden: true,
+	})
 	return cmd
 }

@@ -3,9 +3,11 @@ package followdata
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/cecobask/instagram-insights/pkg/filesystem"
 	"github.com/cecobask/instagram-insights/pkg/instagram"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_handler_Followers(t *testing.T) {
@@ -70,7 +72,7 @@ func Test_handler_Followers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &fields{
 				fileSystem: &filesystem.MockFs{},
-				followData: newFollowData(),
+				followData: &followData{},
 			}
 			h := &handler{
 				fileSystem: f.fileSystem,
@@ -79,8 +81,7 @@ func Test_handler_Followers(t *testing.T) {
 			if tt.expectations != nil {
 				tt.expectations(f)
 			}
-			opts := instagram.NewOptions(instagram.OutputNone)
-			if _, err := h.Followers(opts); (err != nil) != tt.wantErr {
+			if _, err := h.Followers(instagram.NewEmptyOptions()); (err != nil) != tt.wantErr {
 				t.Errorf("Followers() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.assertions != nil {
@@ -136,7 +137,7 @@ func Test_handler_Following(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &fields{
 				fileSystem: &filesystem.MockFs{},
-				followData: newFollowData(),
+				followData: &followData{},
 			}
 			h := &handler{
 				fileSystem: f.fileSystem,
@@ -145,8 +146,7 @@ func Test_handler_Following(t *testing.T) {
 			if tt.expectations != nil {
 				tt.expectations(f)
 			}
-			opts := instagram.NewOptions(instagram.OutputNone)
-			if _, err := h.Following(opts); (err != nil) != tt.wantErr {
+			if _, err := h.Following(instagram.NewEmptyOptions()); (err != nil) != tt.wantErr {
 				t.Errorf("Following() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.assertions != nil {
@@ -208,7 +208,7 @@ func Test_handler_Unfollowers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &fields{
 				fileSystem: &filesystem.MockFs{},
-				followData: newFollowData(),
+				followData: &followData{},
 			}
 			h := &handler{
 				fileSystem: f.fileSystem,
@@ -217,8 +217,7 @@ func Test_handler_Unfollowers(t *testing.T) {
 			if tt.expectations != nil {
 				tt.expectations(f)
 			}
-			opts := instagram.NewOptions(instagram.OutputNone)
-			if _, err := h.Unfollowers(opts); (err != nil) != tt.wantErr {
+			if _, err := h.Unfollowers(instagram.NewEmptyOptions()); (err != nil) != tt.wantErr {
 				t.Errorf("Unfollowers() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.assertions != nil {
@@ -232,15 +231,18 @@ func Test_userList_output(t *testing.T) {
 	type args struct {
 		format string
 	}
+	dummyUser := user{
+		ProfileUrl: "https://www.instagram.com/username",
+		Username:   "username",
+		Timestamp:  &timestamp{},
+	}
 	u := userList{
-		users: map[string]user{
-			"username": {
-				ProfileUrl: "https://www.instagram.com/username",
-				Username:   "username",
-				Timestamp:  &timestamp{},
-			},
-		},
+		users:         []user{dummyUser},
 		showTimestamp: true,
+	}
+	uNoTimestamp := userList{
+		users:         []user{dummyUser},
+		showTimestamp: false,
 	}
 	tests := []struct {
 		name    string
@@ -257,6 +259,14 @@ func Test_userList_output(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "succeeds to output json without timestamp",
+			u:    uNoTimestamp,
+			args: args{
+				format: instagram.OutputJson,
+			},
+			wantErr: false,
+		},
+		{
 			name: "succeeds to output table",
 			u:    u,
 			args: args{
@@ -267,6 +277,14 @@ func Test_userList_output(t *testing.T) {
 		{
 			name: "succeeds to output yaml",
 			u:    u,
+			args: args{
+				format: instagram.OutputYaml,
+			},
+			wantErr: false,
+		},
+		{
+			name: "succeeds to output yaml without timestamp",
+			u:    uNoTimestamp,
 			args: args{
 				format: instagram.OutputYaml,
 			},
@@ -328,6 +346,119 @@ func Test_timestamp_UnmarshalJSON(t *testing.T) {
 			if err := ts.UnmarshalJSON(tt.args.b); (err != nil) != tt.wantErr {
 				t.Errorf("UnmarshalJSON() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+func Test_userList_Sort(t *testing.T) {
+	type fields struct {
+		users []user
+	}
+	type args struct {
+		field string
+		order string
+	}
+	timeNow := time.Now()
+	testUsers := []user{
+		{
+			ProfileUrl: "https://www.instagram.com/username1",
+			Username:   "username1",
+			Timestamp: &timestamp{
+				Time: timeNow,
+			},
+		},
+		{
+			ProfileUrl: "https://www.instagram.com/username2",
+			Username:   "username2",
+			Timestamp: &timestamp{
+				Time: timeNow.Add(time.Hour),
+			},
+		},
+	}
+	tests := []struct {
+		name       string
+		fields     fields
+		args       args
+		assertions func(t *testing.T, ul *userList)
+	}{
+		{
+			name: "succeeds to sort by timestamp ascending",
+			fields: fields{
+				users: testUsers,
+			},
+			args: args{
+				field: instagram.FieldTimestamp,
+				order: instagram.OrderAsc,
+			},
+			assertions: func(t *testing.T, ul *userList) {
+				assert.Equal(t, "username1", ul.users[0].Username)
+				assert.Equal(t, "username2", ul.users[1].Username)
+			},
+		},
+		{
+			name: "succeeds to sort by timestamp descending",
+			fields: fields{
+				users: testUsers,
+			},
+			args: args{
+				field: instagram.FieldTimestamp,
+				order: instagram.OrderDesc,
+			},
+			assertions: func(t *testing.T, ul *userList) {
+				assert.Equal(t, "username2", ul.users[0].Username)
+				assert.Equal(t, "username1", ul.users[1].Username)
+			},
+		},
+		{
+			name: "succeeds to sort by username ascending",
+			fields: fields{
+				users: testUsers,
+			},
+			args: args{
+				field: instagram.FieldUsername,
+				order: instagram.OrderAsc,
+			},
+			assertions: func(t *testing.T, ul *userList) {
+				assert.Equal(t, "username1", ul.users[0].Username)
+				assert.Equal(t, "username2", ul.users[1].Username)
+			},
+		},
+		{
+			name: "succeeds to sort by username descending",
+			fields: fields{
+				users: testUsers,
+			},
+			args: args{
+				field: instagram.FieldUsername,
+				order: instagram.OrderDesc,
+			},
+			assertions: func(t *testing.T, ul *userList) {
+				assert.Equal(t, "username2", ul.users[0].Username)
+				assert.Equal(t, "username1", ul.users[1].Username)
+			},
+		},
+		{
+			name: "succeeds to sort by timestamp when field is unknown",
+			fields: fields{
+				users: testUsers,
+			},
+			args: args{
+				field: "unknown",
+				order: instagram.OrderAsc,
+			},
+			assertions: func(t *testing.T, ul *userList) {
+				assert.Equal(t, "username1", ul.users[0].Username)
+				assert.Equal(t, "username2", ul.users[1].Username)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ul := &userList{
+				users: tt.fields.users,
+			}
+			ul.Sort(tt.args.field, tt.args.order)
+			tt.assertions(t, ul)
 		})
 	}
 }

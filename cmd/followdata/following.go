@@ -9,15 +9,14 @@ import (
 const CommandNameFollowing = "following"
 
 func NewFollowingCommand() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   CommandNameFollowing,
 		Short: "Retrieve a list of users who you follow",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			output, err := cmd.Flags().GetString(instagram.FlagOutput)
+			opts, err := instagram.NewOptions(cmd.Flags())
 			if err != nil {
 				return err
 			}
-			opts := instagram.NewOptions(output)
 			if err = opts.Validate(); err != nil {
 				return err
 			}
@@ -30,4 +29,6 @@ func NewFollowingCommand() *cobra.Command {
 		},
 		DisableAutoGenTag: true,
 	}
+	addCommonFlags(cmd)
+	return cmd
 }

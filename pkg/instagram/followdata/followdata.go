@@ -3,6 +3,8 @@ package followdata
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
+	"sort"
 	"strconv"
 	"time"
 
@@ -13,9 +15,9 @@ import (
 )
 
 type Interface interface {
-	Followers(opts instagram.Options) (*string, error)
-	Following(opts instagram.Options) (*string, error)
-	Unfollowers(opts instagram.Options) (*string, error)
+	Followers(opts *instagram.Options) (*string, error)
+	Following(opts *instagram.Options) (*string, error)
+	Unfollowers(opts *instagram.Options) (*string, error)
 }
 
 type handler struct {
@@ -26,11 +28,11 @@ type handler struct {
 func NewHandler() Interface {
 	return &handler{
 		fileSystem: filesystem.NewFs(),
-		followData: newFollowData(),
+		followData: &followData{},
 	}
 }
 
-func (h *handler) Followers(opts instagram.Options) (*string, error) {
+func (h *handler) Followers(opts *instagram.Options) (*string, error) {
 	files, err := h.fileSystem.FindFiles(instagram.PathFollowers)
 	if err != nil {
 		return nil, err
@@ -44,10 +46,11 @@ func (h *handler) Followers(opts instagram.Options) (*string, error) {
 			return nil, err
 		}
 	}
+	h.followData.Followers.Sort(opts.SortBy, opts.Order)
 	return h.followData.Followers.output(opts.Output)
 }
 
-func (h *handler) Following(opts instagram.Options) (*string, error) {
+func (h *handler) Following(opts *instagram.Options) (*string, error) {
 	data, err := h.fileSystem.ReadFile(instagram.PathFollowing)
 	if err != nil {
 		return nil, err
@@ -55,18 +58,20 @@ func (h *handler) Following(opts instagram.Options) (*string, error) {
 	if err = h.followData.hydrateFollowing(data); err != nil {
 		return nil, err
 	}
+	h.followData.Following.Sort(opts.SortBy, opts.Order)
 	return h.followData.Following.output(opts.Output)
 }
 
-func (h *handler) Unfollowers(opts instagram.Options) (*string, error) {
-	childOptions := instagram.NewOptions(instagram.OutputNone)
-	if _, err := h.Followers(childOptions); err != nil {
+func (h *handler) Unfollowers(opts *instagram.Options) (*string, error) {
+	emptyOptions := instagram.NewEmptyOptions()
+	if _, err := h.Followers(emptyOptions); err != nil {
 		return nil, err
 	}
-	if _, err := h.Following(childOptions); err != nil {
+	if _, err := h.Following(emptyOptions); err != nil {
 		return nil, err
 	}
 	h.followData.hydrateUnfollowers()
+	h.followData.Unfollowers.Sort(opts.SortBy, opts.Order)
 	return h.followData.Unfollowers.output(opts.Output)
 }
 
@@ -80,21 +85,12 @@ type userData struct {
 	UserData []userOriginal `json:"string_list_data"`
 }
 
-func newFollowData() *followData {
-	return &followData{
-		Following: &userList{
-			users:         make(map[string]user),
-			showTimestamp: true,
-		},
-		Followers: &userList{
-			users:         make(map[string]user),
-			showTimestamp: true,
-		},
-		Unfollowers: &userList{
-			users:         make(map[string]user),
-			showTimestamp: false,
-		},
+func newUserList(users []user, showTimestamp bool) *userList {
+	return &userList{
+		users:         users,
+		showTimestamp: showTimestamp,
 	}
+
 }
 
 func (fd *followData) hydrateFollowers(data []byte) error {
@@ -102,16 +98,18 @@ func (fd *followData) hydrateFollowers(data []byte) error {
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return err
 	}
+	users := make([]user, 0, len(jsonData))
 	for i := range jsonData {
 		ud := jsonData[i].UserData[0]
-		fd.Followers.users[ud.Value] = user{
+		users = append(users, user{
 			ProfileUrl: ud.Href,
 			Username:   ud.Value,
 			Timestamp: &timestamp{
 				Time: time.Unix(int64(ud.Timestamp), 0),
 			},
-		}
+		})
 	}
+	fd.Followers = newUserList(users, true)
 	return nil
 }
 
@@ -120,25 +118,33 @@ func (fd *followData) hydrateFollowing(data []byte) error {
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return err
 	}
+	users := make([]user, 0, len(jsonData))
 	for i := range jsonData["relationships_following"] {
 		ud := jsonData["relationships_following"][i].UserData[0]
-		fd.Following.users[ud.Value] = user{
+		users = append(users, user{
 			ProfileUrl: ud.Href,
 			Username:   ud.Value,
 			Timestamp: &timestamp{
 				Time: time.Unix(int64(ud.Timestamp), 0),
 			},
-		}
+		})
 	}
+	fd.Following = newUserList(users, true)
 	return nil
 }
 
 func (fd *followData) hydrateUnfollowers() {
-	for username, ud := range fd.Following.users {
-		if _, found := fd.Followers.users[username]; !found {
-			fd.Unfollowers.users[username] = ud
+	users := make([]user, 0)
+	for i := range fd.Following.users {
+		current := fd.Following.users[i]
+		index := slices.IndexFunc(fd.Followers.users, func(u user) bool {
+			return u.Username == current.Username
+		})
+		if index == -1 {
+			users = append(users, current)
 		}
 	}
+	fd.Unfollowers = newUserList(users, false)
 }
 
 type timestamp struct {
@@ -163,7 +169,7 @@ func (t *timestamp) MarshalYAML() (interface{}, error) {
 }
 
 func (t *timestamp) String() string {
-	return t.Format(time.DateOnly)
+	return t.Format(time.RFC3339)
 }
 
 type userOriginal struct {
@@ -175,40 +181,41 @@ type userOriginal struct {
 type user struct {
 	ProfileUrl string     `json:"profileUrl" yaml:"profileUrl"`
 	Username   string     `json:"username" yaml:"username"`
-	Timestamp  *timestamp `json:"timestamp" yaml:"timestamp"`
+	Timestamp  *timestamp `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
 }
 
 type userList struct {
-	users         map[string]user
+	users         []user
 	showTimestamp bool
 }
 
-func (u *userList) output(format string) (*string, error) {
+func (ul *userList) output(format string) (*string, error) {
 	switch format {
 	case instagram.OutputJson:
-		return u.outputJson()
+		return ul.outputJson()
 	case instagram.OutputNone:
-		return u.outputNone()
+		return ul.outputNone()
 	case instagram.OutputTable:
-		return u.outputTable()
+		return ul.outputTable()
 	case instagram.OutputYaml:
-		return u.outputYaml()
+		return ul.outputYaml()
 	default:
 		return nil, fmt.Errorf("invalid output format: %s", format)
 	}
 }
 
-func (u *userList) outputNone() (*string, error) {
+func (ul *userList) outputNone() (*string, error) {
 	output := ""
 	return &output, nil
 }
 
-func (u *userList) outputJson() (*string, error) {
-	var users []user
-	for i := range u.users {
-		users = append(users, u.users[i])
+func (ul *userList) outputJson() (*string, error) {
+	if !ul.showTimestamp {
+		for i := range ul.users {
+			ul.users[i].Timestamp = nil
+		}
 	}
-	data, err := json.MarshalIndent(users, "", "  ")
+	data, err := json.MarshalIndent(ul.users, "", "  ")
 	if err != nil {
 		return nil, err
 	}
@@ -216,15 +223,16 @@ func (u *userList) outputJson() (*string, error) {
 	return &output, nil
 }
 
-func (u *userList) outputTable() (*string, error) {
+func (ul *userList) outputTable() (*string, error) {
 	var rows []table.Row
-	for _, user := range u.users {
+	for i := range ul.users {
+		current := ul.users[i]
 		row := table.Row{
-			user.Username,
-			user.ProfileUrl,
+			current.Username,
+			current.ProfileUrl,
 		}
-		if u.showTimestamp {
-			row = append(row, user.Timestamp)
+		if ul.showTimestamp {
+			row = append(row, current.Timestamp)
 		}
 		rows = append(rows, row)
 	}
@@ -232,7 +240,7 @@ func (u *userList) outputTable() (*string, error) {
 		instagram.TableHeaderUsername,
 		instagram.TableHeaderProfileUrl,
 	}
-	if u.showTimestamp {
+	if ul.showTimestamp {
 		header = append(header, instagram.TableHeaderTimestamp)
 	}
 	usersTable := table.NewWriter()
@@ -244,15 +252,34 @@ func (u *userList) outputTable() (*string, error) {
 	return &output, nil
 }
 
-func (u *userList) outputYaml() (*string, error) {
-	var users []user
-	for i := range u.users {
-		users = append(users, u.users[i])
+func (ul *userList) outputYaml() (*string, error) {
+	if !ul.showTimestamp {
+		for i := range ul.users {
+			ul.users[i].Timestamp = nil
+		}
 	}
-	data, err := yaml.Marshal(users)
+	data, err := yaml.Marshal(ul.users)
 	if err != nil {
 		return nil, err
 	}
 	output := string(data)
 	return &output, nil
+}
+
+func (ul *userList) Sort(field string, order string) {
+	sort.Slice(ul.users, func(a, b int) bool {
+		userOne := ul.users[a]
+		userTwo := ul.users[b]
+		switch field {
+		case instagram.FieldTimestamp:
+			return userOne.Timestamp.Time.Before(userTwo.Timestamp.Time)
+		case instagram.FieldUsername:
+			return userOne.Username < userTwo.Username
+		default:
+			return userOne.Timestamp.Time.Before(userTwo.Timestamp.Time)
+		}
+	})
+	if order == instagram.OrderDesc {
+		slices.Reverse(ul.users)
+	}
 }
