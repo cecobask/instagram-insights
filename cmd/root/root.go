@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/cecobask/instagram-insights/cmd/followdata"
 	"github.com/cecobask/instagram-insights/cmd/information"
@@ -24,6 +25,8 @@ func NewRootCommand() *cobra.Command {
 		SilenceUsage:      true,
 		DisableAutoGenTag: true,
 	}
+	cmd.SetOut(os.Stdout)
+	cmd.SetErr(os.Stderr)
 	cmd.AddCommand(
 		information.NewRootCommand(),
 		followdata.NewRootCommand(),

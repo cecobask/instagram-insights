@@ -462,3 +462,64 @@ func Test_userList_Sort(t *testing.T) {
 		})
 	}
 }
+
+func Test_userList_Limit(t *testing.T) {
+	type fields struct {
+		users []user
+	}
+	type args struct {
+		limit int
+	}
+	testUsers := []user{
+		{
+			ProfileUrl: "https://www.instagram.com/username1",
+			Username:   "username1",
+			Timestamp:  &timestamp{},
+		},
+		{
+			ProfileUrl: "https://www.instagram.com/username2",
+			Username:   "username2",
+			Timestamp:  &timestamp{},
+		},
+	}
+	tests := []struct {
+		name       string
+		fields     fields
+		args       args
+		assertions func(t *testing.T, ul *userList)
+	}{
+		{
+			name: "succeeds to limit users",
+			fields: fields{
+				users: testUsers,
+			},
+			args: args{
+				limit: 1,
+			},
+			assertions: func(t *testing.T, ul *userList) {
+				assert.Equal(t, 1, len(ul.users))
+			},
+		},
+		{
+			name: "avoids to limit users when limit is unlimited",
+			fields: fields{
+				users: testUsers,
+			},
+			args: args{
+				limit: instagram.Unlimited,
+			},
+			assertions: func(t *testing.T, ul *userList) {
+				assert.Equal(t, 2, len(ul.users))
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ul := &userList{
+				users: tt.fields.users,
+			}
+			ul.Limit(tt.args.limit)
+			tt.assertions(t, ul)
+		})
+	}
+}

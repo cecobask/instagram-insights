@@ -47,6 +47,7 @@ func (h *handler) Followers(opts *instagram.Options) (*string, error) {
 		}
 	}
 	h.followData.Followers.Sort(opts.SortBy, opts.Order)
+	h.followData.Followers.Limit(opts.Limit)
 	return h.followData.Followers.output(opts.Output)
 }
 
@@ -59,6 +60,7 @@ func (h *handler) Following(opts *instagram.Options) (*string, error) {
 		return nil, err
 	}
 	h.followData.Following.Sort(opts.SortBy, opts.Order)
+	h.followData.Following.Limit(opts.Limit)
 	return h.followData.Following.output(opts.Output)
 }
 
@@ -72,6 +74,7 @@ func (h *handler) Unfollowers(opts *instagram.Options) (*string, error) {
 	}
 	h.followData.hydrateUnfollowers()
 	h.followData.Unfollowers.Sort(opts.SortBy, opts.Order)
+	h.followData.Unfollowers.Limit(opts.Limit)
 	return h.followData.Unfollowers.output(opts.Output)
 }
 
@@ -281,5 +284,11 @@ func (ul *userList) Sort(field string, order string) {
 	})
 	if order == instagram.OrderDesc {
 		slices.Reverse(ul.users)
+	}
+}
+
+func (ul *userList) Limit(limit int) {
+	if limit > 0 && limit < len(ul.users) {
+		ul.users = ul.users[:limit]
 	}
 }

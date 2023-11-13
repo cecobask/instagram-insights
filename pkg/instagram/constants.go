@@ -3,6 +3,7 @@ package instagram
 const (
 	FieldTimestamp = "timestamp"
 	FieldUsername  = "username"
+	Unlimited      = 0
 	OrderAsc       = "asc"
 	OrderDesc      = "desc"
 	OutputJson     = "json"
@@ -12,6 +13,7 @@ const (
 )
 
 const (
+	FlagLimit                  = "limit"
 	FlagOrder                  = "order"
 	FlagOutput                 = "output"
 	FlagSortBy                 = "sort-by"

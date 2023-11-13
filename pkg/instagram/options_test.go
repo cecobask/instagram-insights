@@ -42,6 +42,7 @@ func Test_validateOutput(t *testing.T) {
 
 func TestOptions_Validate(t *testing.T) {
 	type fields struct {
+		Limit  int
 		Order  string
 		Output string
 		SortBy string
@@ -54,11 +55,19 @@ func TestOptions_Validate(t *testing.T) {
 		{
 			name: "succeeds to validate all options",
 			fields: fields{
+				Limit:  Unlimited,
 				Order:  OrderAsc,
 				Output: OutputTable,
 				SortBy: FieldTimestamp,
 			},
 			wantErr: false,
+		},
+		{
+			name: "fails to validate limit",
+			fields: fields{
+				Limit: -1,
+			},
+			wantErr: true,
 		},
 		{
 			name: "fails to validate order",
@@ -88,6 +97,7 @@ func TestOptions_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			o := Options{
+				Limit:  tt.fields.Limit,
 				Order:  tt.fields.Order,
 				Output: tt.fields.Output,
 				SortBy: tt.fields.SortBy,
@@ -114,6 +124,7 @@ func TestNewOptions(t *testing.T) {
 			args: args{
 				flags: func() *pflag.FlagSet {
 					flags := pflag.NewFlagSet("", pflag.ExitOnError)
+					flags.Int(FlagLimit, 1000, "")
 					flags.String(FlagOrder, OrderAsc, "")
 					flags.String(FlagOutput, OutputTable, "")
 					flags.String(FlagSortBy, FieldTimestamp, "")
@@ -121,6 +132,7 @@ func TestNewOptions(t *testing.T) {
 				}(),
 			},
 			want: &Options{
+				Limit:  1000,
 				Order:  OrderAsc,
 				Output: OutputTable,
 				SortBy: FieldTimestamp,
@@ -128,9 +140,21 @@ func TestNewOptions(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "fails to find flag order",
+			name: "fails to find flag limit",
 			args: args{
 				flags: pflag.NewFlagSet("", pflag.ExitOnError),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "fails to find flag order",
+			args: args{
+				flags: func() *pflag.FlagSet {
+					flags := pflag.NewFlagSet("", pflag.ExitOnError)
+					flags.Int(FlagLimit, Unlimited, "")
+					return flags
+				}(),
 			},
 			want:    nil,
 			wantErr: true,
@@ -140,6 +164,7 @@ func TestNewOptions(t *testing.T) {
 			args: args{
 				flags: func() *pflag.FlagSet {
 					flags := pflag.NewFlagSet("", pflag.ExitOnError)
+					flags.Int(FlagLimit, Unlimited, "")
 					flags.String(FlagOrder, OrderAsc, "")
 					return flags
 				}(),
@@ -152,6 +177,7 @@ func TestNewOptions(t *testing.T) {
 			args: args{
 				flags: func() *pflag.FlagSet {
 					flags := pflag.NewFlagSet("", pflag.ExitOnError)
+					flags.Int(FlagLimit, Unlimited, "")
 					flags.String(FlagOrder, OrderAsc, "")
 					flags.String(FlagOutput, OutputTable, "")
 					return flags
