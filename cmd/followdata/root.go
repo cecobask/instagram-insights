@@ -28,6 +28,7 @@ func NewRootCommand() *cobra.Command {
 }
 
 func addCommonFlags(cmd *cobra.Command) {
+	cmd.Flags().Int(instagram.FlagLimit, instagram.Unlimited, `maximum results to display, leave empty for unlimited`)
 	cmd.Flags().String(instagram.FlagOrder, instagram.OrderDesc, `order direction ("asc", "desc")`)
 	cmd.Flags().String(instagram.FlagOutput, instagram.OutputTable, `output format ("json", "table", "yaml")`)
 	cmd.Flags().String(instagram.FlagSortBy, instagram.FieldTimestamp, `sort by field ("timestamp", "username")`)

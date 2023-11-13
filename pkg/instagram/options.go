@@ -7,12 +7,17 @@ import (
 )
 
 type Options struct {
+	Limit  int
 	Order  string
 	Output string
 	SortBy string
 }
 
 func NewOptions(flags *pflag.FlagSet) (*Options, error) {
+	limit, err := flags.GetInt(FlagLimit)
+	if err != nil {
+		return nil, err
+	}
 	order, err := flags.GetString(FlagOrder)
 	if err != nil {
 		return nil, err
@@ -26,6 +31,7 @@ func NewOptions(flags *pflag.FlagSet) (*Options, error) {
 		return nil, err
 	}
 	return &Options{
+		Limit:  limit,
 		Order:  order,
 		Output: output,
 		SortBy: sortBy,
@@ -39,6 +45,9 @@ func NewEmptyOptions() *Options {
 }
 
 func (o *Options) Validate() error {
+	if err := validateLimit(o.Limit); err != nil {
+		return err
+	}
 	if err := validateOrder(o.Order); err != nil {
 		return err
 	}
@@ -49,6 +58,14 @@ func (o *Options) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func validateLimit(value int) error {
+	if value < 0 {
+		return fmt.Errorf("invalid limit: %d", value)
+	}
+	return nil
+
 }
 
 func validateOrder(value string) error {
