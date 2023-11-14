@@ -7,7 +7,6 @@ Discover various insights from your Instagram data.
 ## Use-cases
 - Find out which users are not following you back
 - Export followers and following user lists in various formats (table, json, yaml)
-- Sort the results by various criteria in ascending or descending order
 - Set sorting criteria and order direction of the results
 - Limit the number of results to get a quick overview (e.g. top 10)
 
