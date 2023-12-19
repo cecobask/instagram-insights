@@ -22,7 +22,7 @@ func Test_handler_Followers(t *testing.T) {
 		wantErr      bool
 	}{
 		{
-			name: "succeeds to output followers",
+			name: "succeeds to output followers when single followers_n file is present",
 			expectations: func(f *fields) {
 				f.fileSystem.On("FindFiles", instagram.PathFollowers).Return([]string{"file1"}, nil)
 				f.fileSystem.On("ReadFile", "file1").Return([]byte(`[{"string_list_data":[{"href":"https://www.instagram.com/username","value":"username","timestamp":0}]}]`), nil)
@@ -30,6 +30,22 @@ func Test_handler_Followers(t *testing.T) {
 			assertions: func(t *testing.T, f *fields) {
 				f.fileSystem.AssertNumberOfCalls(t, "FindFiles", 1)
 				f.fileSystem.AssertNumberOfCalls(t, "ReadFile", 1)
+			},
+			wantErr: false,
+		},
+		{
+			name: "succeeds to output followers when multiple followers_n files are present",
+			expectations: func(f *fields) {
+				f.fileSystem.On("FindFiles", instagram.PathFollowers).Return([]string{
+					"file1",
+					"file2",
+				}, nil)
+				f.fileSystem.On("ReadFile", "file1").Return([]byte(`[{"string_list_data":[{"href":"https://www.instagram.com/username1","value":"username1","timestamp":0}]}]`), nil)
+				f.fileSystem.On("ReadFile", "file2").Return([]byte(`[{"string_list_data":[{"href":"https://www.instagram.com/username2","value":"username2","timestamp":0}]}]`), nil)
+			},
+			assertions: func(t *testing.T, f *fields) {
+				f.fileSystem.AssertNumberOfCalls(t, "FindFiles", 1)
+				f.fileSystem.AssertNumberOfCalls(t, "ReadFile", 2)
 			},
 			wantErr: false,
 		},
@@ -72,7 +88,7 @@ func Test_handler_Followers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &fields{
 				fileSystem: &filesystem.MockFs{},
-				followData: &followData{},
+				followData: newFollowData(),
 			}
 			h := &handler{
 				fileSystem: f.fileSystem,
@@ -137,7 +153,7 @@ func Test_handler_Following(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &fields{
 				fileSystem: &filesystem.MockFs{},
-				followData: &followData{},
+				followData: newFollowData(),
 			}
 			h := &handler{
 				fileSystem: f.fileSystem,
@@ -208,7 +224,7 @@ func Test_handler_Unfollowers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &fields{
 				fileSystem: &filesystem.MockFs{},
-				followData: &followData{},
+				followData: newFollowData(),
 			}
 			h := &handler{
 				fileSystem: f.fileSystem,

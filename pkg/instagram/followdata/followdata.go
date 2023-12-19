@@ -28,7 +28,7 @@ type handler struct {
 func NewHandler() Interface {
 	return &handler{
 		fileSystem: filesystem.NewFs(),
-		followData: &followData{},
+		followData: newFollowData(),
 	}
 }
 
@@ -84,16 +84,16 @@ type followData struct {
 	Unfollowers *userList
 }
 
-type userData struct {
-	UserData []userOriginal `json:"string_list_data"`
+func newFollowData() *followData {
+	return &followData{
+		Following:   newUserList(true),
+		Followers:   newUserList(true),
+		Unfollowers: newUserList(false),
+	}
 }
 
-func newUserList(users []user, showTimestamp bool) *userList {
-	return &userList{
-		users:         users,
-		showTimestamp: showTimestamp,
-	}
-
+type userData struct {
+	UserData []userOriginal `json:"string_list_data"`
 }
 
 func (fd *followData) hydrateFollowers(data []byte) error {
@@ -101,10 +101,9 @@ func (fd *followData) hydrateFollowers(data []byte) error {
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return err
 	}
-	users := make([]user, 0, len(jsonData))
 	for i := range jsonData {
 		ud := jsonData[i].UserData[0]
-		users = append(users, user{
+		fd.Followers.Append(user{
 			ProfileUrl: ud.Href,
 			Username:   ud.Value,
 			Timestamp: &timestamp{
@@ -112,7 +111,6 @@ func (fd *followData) hydrateFollowers(data []byte) error {
 			},
 		})
 	}
-	fd.Followers = newUserList(users, true)
 	return nil
 }
 
@@ -121,10 +119,9 @@ func (fd *followData) hydrateFollowing(data []byte) error {
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return err
 	}
-	users := make([]user, 0, len(jsonData))
 	for i := range jsonData["relationships_following"] {
 		ud := jsonData["relationships_following"][i].UserData[0]
-		users = append(users, user{
+		fd.Following.Append(user{
 			ProfileUrl: ud.Href,
 			Username:   ud.Value,
 			Timestamp: &timestamp{
@@ -132,22 +129,19 @@ func (fd *followData) hydrateFollowing(data []byte) error {
 			},
 		})
 	}
-	fd.Following = newUserList(users, true)
 	return nil
 }
 
 func (fd *followData) hydrateUnfollowers() {
-	users := make([]user, 0)
 	for i := range fd.Following.users {
 		current := fd.Following.users[i]
 		index := slices.IndexFunc(fd.Followers.users, func(u user) bool {
 			return u.Username == current.Username
 		})
 		if index == -1 {
-			users = append(users, current)
+			fd.Unfollowers.Append(current)
 		}
 	}
-	fd.Unfollowers = newUserList(users, false)
 }
 
 type timestamp struct {
@@ -190,6 +184,13 @@ type user struct {
 type userList struct {
 	users         []user
 	showTimestamp bool
+}
+
+func newUserList(showTimestamp bool) *userList {
+	return &userList{
+		users:         make([]user, 0),
+		showTimestamp: showTimestamp,
+	}
 }
 
 func (ul *userList) output(format string) (*string, error) {
@@ -291,4 +292,8 @@ func (ul *userList) Limit(limit int) {
 	if limit > 0 && limit < len(ul.users) {
 		ul.users = ul.users[:limit]
 	}
+}
+
+func (ul *userList) Append(u user) {
+	ul.users = append(ul.users, u)
 }
